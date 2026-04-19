@@ -51,26 +51,31 @@ jobs:
           k8sgpt auth add --backend ollama --model tinyllama || true
           k8sgpt auth default --provider ollama
 
-      # 6. Deploy workloads
+      # 6. Debug mode (Inject failure)
+      - name: Debug mode
+        run: |
+          echo "Inject failure: ${{ inputs.inject_failure }}"
+
+      # 7. Deploy workloads
       - name: Deploy test apps
         run: |
           kubectl create namespace k8sgpt
           kubectl apply -f examples/healthy.yaml
 
-      # 7. Inject failure (gate trigger)
+      # 8. Inject failure (gate trigger)
       - name: Inject failure
         if: ${{ inputs.inject_failure == 'true' }}
         run: |
           kubectl apply -f examples/broken.yaml
 
-      # 8. Wait for failure state
+      # 9. Wait for failure state
       - name: Wait for failure
         if: ${{ inputs.inject_failure == 'true' }}
         run: |
           sleep 20
           kubectl get pods -n k8sgpt
 
-      # 9. Run validation (this is your gate)
+      # 10. Run validation (this is your gate)
       - name: Run k8sgpt validation
         run: |
           chmod +x scripts/analyze.sh
