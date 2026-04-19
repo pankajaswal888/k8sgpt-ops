@@ -1,6 +1,8 @@
 name: k8sgpt-gate
 
 on:
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       inject_failure:
@@ -51,10 +53,11 @@ jobs:
           k8sgpt auth add --backend ollama --model tinyllama || true
           k8sgpt auth default --provider ollama
 
-      # 6. Debug mode (Inject failure)
+      # 6. Debug mode
       - name: Debug mode
         run: |
-          echo "Inject failure: ${{ inputs.inject_failure }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Inject failure: ${{ inputs.inject_failure || 'false' }}"
 
       # 7. Deploy workloads
       - name: Deploy test apps
@@ -64,13 +67,13 @@ jobs:
 
       # 8. Inject failure (gate trigger)
       - name: Inject failure
-        if: ${{ inputs.inject_failure == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.inject_failure == 'true' }}
         run: |
           kubectl apply -f examples/broken.yaml
 
       # 9. Wait for failure state
       - name: Wait for failure
-        if: ${{ inputs.inject_failure == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.inject_failure == 'true' }}
         run: |
           sleep 20
           kubectl get pods -n k8sgpt
@@ -80,3 +83,8 @@ jobs:
         run: |
           chmod +x scripts/analyze.sh
           ./scripts/analyze.sh
+
+      - name: Wait for readiness
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          kubectl wait --for=condition=available deployment/healthy-app -n k8sgpt --timeout=60s
