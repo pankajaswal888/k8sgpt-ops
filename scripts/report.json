@@ -1,0 +1,21 @@
+{
+  "provider": "ollama",
+  "errors": null,
+  "status": "ProblemDetected",
+  "problems": 1,
+  "results": [
+    {
+      "kind": "Pod",
+      "name": "k8sgpt/broken-app-6bb6d6947f-27tqp",
+      "error": [
+        {
+          "Text": "Back-off pulling image \"nginx:invalid-tag\": ErrImagePull: Error response from daemon: manifest for nginx:invalid-tag not found: manifest unknown: manifest unknown",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "Sure, here's an English-language simplified version of the Kubernetes error message:\n\n---\n\nBack-off pulling image \"nginx:invalid-tag\": ErrImagePull: Error response from daemon: manifest for nginx:invali...\n\nStep by step solution:\n\n1. Check if the tag is valid or not using `docker inspect` command, and if it's invalid, remove it from the image name (e.g., \"nginx:invalid-tag\").\n2. Use the latest version of the image (`docker pull docker.io/library/nginx`) to pull the updated image with the correct tag.\n3. Verify that the image is pulled successfully by running `docker images` command. If the image is still available, you can proceed with the next step.\n4. Finally, use the new image name (`nginx:latest`) in your Dockerfile or other commands.\n\nHope this helps! Let me know if you have any further questions.",
+      "parentObject": "Deployment/broken-app"
+    }
+  ]
+}

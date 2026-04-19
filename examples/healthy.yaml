@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthy-app
+  namespace: k8sgpt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: healthy
+  template:
+    metadata:
+      labels:
+        app: healthy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80

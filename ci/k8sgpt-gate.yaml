@@ -1,0 +1,72 @@
+name: k8sgpt-gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. Install kubectl + kind
+      - name: Setup Kubernetes tools
+        run: |
+          curl -Lo kubectl https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x kind && sudo mv kind /usr/local/bin/
+
+      # 2. Create cluster
+      - name: Create kind cluster
+        run: |
+          kind create cluster --wait 60s
+          kubectl get nodes
+
+      # 3. Install Ollama
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull tinyllama
+
+      # 4. Install k8sgpt
+      - name: Install k8sgpt
+        run: |
+          curl -sSL https://github.com/k8sgpt-ai/k8sgpt/releases/latest/download/k8sgpt_Linux_x86_64.tar.gz | tar -xz
+          sudo mv k8sgpt /usr/local/bin/
+
+      # 5. Configure k8sgpt (IMPORTANT)
+      - name: Configure k8sgpt
+        run: |
+          k8sgpt auth add --backend ollama --model tinyllama || true
+          k8sgpt auth default --provider ollama
+
+      # 6. Deploy workloads
+      - name: Deploy test apps
+        run: |
+          kubectl create namespace k8sgpt
+          kubectl apply -f examples/healthy.yaml
+
+      # 7. Inject failure (gate trigger)
+      - name: Inject failure
+        run: |
+          kubectl apply -f examples/broken.yaml
+
+      # 8. Wait for failure state
+      - name: Wait for failure
+        run: |
+          sleep 20
+          kubectl get pods -n k8sgpt
+
+      # 9. Run validation (this is your gate)
+      - name: Run k8sgpt validation
+        run: |
+          chmod +x scripts/analyze.sh
+          ./scripts/analyze.sh
