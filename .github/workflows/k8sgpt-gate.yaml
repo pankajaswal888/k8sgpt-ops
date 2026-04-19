@@ -2,8 +2,11 @@ name: k8sgpt-gate
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
+    inputs:
+      inject_failure:
+        description: "Inject failure (true/false)"
+        required: true
+        default: "false"
 
 jobs:
   validate:
@@ -56,11 +59,13 @@ jobs:
 
       # 7. Inject failure (gate trigger)
       - name: Inject failure
+        if: ${{ inputs.inject_failure == 'true' }}
         run: |
           kubectl apply -f examples/broken.yaml
 
       # 8. Wait for failure state
       - name: Wait for failure
+        if: ${{ inputs.inject_failure == 'true' }}
         run: |
           sleep 20
           kubectl get pods -n k8sgpt
